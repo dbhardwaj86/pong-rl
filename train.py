@@ -71,7 +71,7 @@ def main():
     rng = np.random.default_rng(args.seed)
 
     env = PongEnv(PongConfig(rng_seed=args.seed))
-    policy = MLPPolicy(state_dim=6, hidden=64, n_actions=3, seed=args.seed)
+    policy = policy = MLPPolicy(state_dim=6, hidden1=128, hidden2=32, n_actions=3, seed=args.seed)
 
     start_ep = 1
     ema_return = EMA(alpha=0.1)

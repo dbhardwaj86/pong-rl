@@ -2,6 +2,7 @@
 # NumPy MLP policy with manual backprop for policy-gradient (REINFORCE).
 
 import numpy as np
+import pickle
 
 class MLPPolicy:
     def __init__(self, state_dim: int, hidden: int, n_actions: int, seed: int = 0):
@@ -29,18 +30,16 @@ class MLPPolicy:
         a = rng.choice(len(probs), p=probs)
         return int(a), probs, cache
 
-    # New: generic backprop from dlogits (lets us combine multiple loss terms)
     def backprop_from_dlogits(self, cache, dlogits):
         s, z1, h, logits, probs = cache
-        dW2 = np.outer(h, dlogits)         # [H, A]
-        db2 = dlogits                      # [A]
-        dh = dlogits @ self.W2.T           # [H]
-        dz1 = dh * (z1 > 0)                # ReLU
-        dW1 = np.outer(s, dz1)             # [S, H]
+        dW2 = np.outer(h, dlogits)
+        db2 = dlogits
+        dh = dlogits @ self.W2.T
+        dz1 = dh * (z1 > 0)
+        dW1 = np.outer(s, dz1)
         db1 = dz1
         return {"W1": dW1, "b1": db1, "W2": dW2, "b2": db2}
 
-    # (kept for compatibility if you still call it elsewhere)
     def grad_logp(self, cache, a):
         s, z1, h, logits, probs = cache
         y = np.zeros_like(probs); y[a] = 1.0
@@ -52,3 +51,21 @@ class MLPPolicy:
         self.b1 -= lr * grads["b1"]
         self.W2 -= lr * grads["W2"]
         self.b2 -= lr * grads["b2"]
+
+    # --- New save/load methods ---
+    def save(self, path):
+        with open(path, "wb") as f:
+            pickle.dump({
+                "W1": self.W1,
+                "b1": self.b1,
+                "W2": self.W2,
+                "b2": self.b2
+            }, f)
+
+    def load(self, path):
+        with open(path, "rb") as f:
+            data = pickle.load(f)
+        self.W1 = data["W1"]
+        self.b1 = data["b1"]
+        self.W2 = data["W2"]
+        self.b2 = data["b2"]
